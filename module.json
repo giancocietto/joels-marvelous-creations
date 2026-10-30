@@ -1,0 +1,33 @@
+{
+  "id": "joels-marvelous-creations",
+  "title": "Joel's Marvelous Creations",
+  "description": "Status aggiuntivi per dnd5e: Benedetto (Bless) con +1d4 automatico a TxC e TS, e Immagine Speculare con gestione dei duplicati (regole 2024).",
+  "version": "0.1.0",
+  "url": "https://github.com/giancocietto/joels-marvelous-creations",
+  "manifest": "https://github.com/giancocietto/joels-marvelous-creations/releases/latest/download/module.json",
+  "download": "https://github.com/giancocietto/joels-marvelous-creations/releases/download/v0.1.0/module.zip",
+  "authors": [
+    {
+      "name": "Marco"
+    }
+  ],
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14"
+  },
+  "relationships": {
+    "systems": [
+      {
+        "id": "dnd5e",
+        "type": "system",
+        "compatibility": {
+          "minimum": "5.3.0"
+        }
+      }
+    ]
+  },
+  "esmodules": [
+    "scripts/main.js"
+  ],
+  "socket": true
+}
