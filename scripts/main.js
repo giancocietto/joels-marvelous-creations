@@ -81,6 +81,7 @@ Hooks.once("setup", () => {
 
 Hooks.once("ready", () => {
   game.socket.on(SOCKET, onSocketMessage);
+  if (game.users.activeGM?.isSelf) fixBlessedIcons().catch(err => console.error(`${MODULE_ID} |`, err));
 
   game.modules.get(MODULE_ID).api = {
     BLESSED_ID,
@@ -396,6 +397,8 @@ function blessedEffectData({ concentration, origin }) {
     img: status?.img,
     description: status?.description ?? "",
     statuses: [BLESSED_ID],
+    // v14: senza questo l'icona compare sul token solo per effetti con durata.
+    showIcon: CONST.ACTIVE_EFFECT_SHOW_ICON?.ALWAYS ?? 2,
     system: foundry.utils.deepClone(status?.system ?? { changes: buildBlessChanges() }),
     flags: { [MODULE_ID]: { [FLAG_CONCENTRATION]: concentration ?? null } }
   };
@@ -423,16 +426,31 @@ async function applyBlessed(payload) {
   }
 }
 
-/** Rimuove tutti gli status Benedetto legati a una concentrazione terminata. */
-async function removeBlessedLinkedTo(concentrationUuid) {
+/** Sistema gli effetti Blessed creati dalla v0.2.0, che non mostravano l'icona sul token. */
+async function fixBlessedIcons() {
+  const ALWAYS = CONST.ACTIVE_EFFECT_SHOW_ICON?.ALWAYS ?? 2;
+  for (const actor of allWorldActors()) {
+    const updates = actor.effects
+      .filter(e => e.statuses?.has(BLESSED_ID) && e.showIcon !== ALWAYS)
+      .map(e => ({ _id: e.id, showIcon: ALWAYS }));
+    if (updates.length) await actor.updateEmbeddedDocuments("ActiveEffect", updates);
+  }
+}
+
+/** Attori del mondo più quelli sintetici dei token non collegati. */
+function allWorldActors() {
   const actors = new Set(game.actors);
   for (const scene of game.scenes) {
     for (const token of scene.tokens) {
       if (!token.actorLink && token.actor) actors.add(token.actor);
     }
   }
+  return actors;
+}
 
-  for (const actor of actors) {
+/** Rimuove tutti gli status Blessed legati a una concentrazione terminata. */
+async function removeBlessedLinkedTo(concentrationUuid) {
+  for (const actor of allWorldActors()) {
     if (!actor.isOwner) continue;
     const ids = actor.effects
       .filter(e => e.statuses?.has(BLESSED_ID) && e.getFlag(MODULE_ID, FLAG_CONCENTRATION) === concentrationUuid)
