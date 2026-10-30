@@ -41,7 +41,7 @@ Hooks.once("init", () => {
 
   game.settings.register(MODULE_ID, "autoBless", {
     name: "Benedizione automatica",
-    hint: "Quando un incantatore lancia Benedizione dalla scheda, applica lo status Blessed ai bersagli selezionati (T) e lo lega alla sua concentrazione.",
+    hint: "Quando un incantatore lancia Benedizione dalla scheda, apre la scelta dei bersagli, applica lo status Blessed e lo lega alla sua concentrazione.",
     scope: "world",
     config: true,
     type: Boolean,
@@ -332,7 +332,7 @@ Hooks.on("dnd5e.postUseActivity", (activity, usageConfig, results) => {
   }
 
   if (spellMatches(item, "bless", BLESS_NAMES) && game.settings.get(MODULE_ID, "autoBless")) {
-    handleBlessCast(activity, results).catch(err => console.error(`${MODULE_ID} |`, err));
+    handleBlessCast(activity, usageConfig, results).catch(err => console.error(`${MODULE_ID} |`, err));
   }
 });
 
@@ -366,15 +366,108 @@ function findConcentration(caster, item, results) {
   return list.find(mentionsItem) ?? list.at(-1) ?? null;
 }
 
-async function handleBlessCast(activity, results) {
+const BLESS_RANGE_FT = 30;
+
+/** Livello a cui è stato lanciato l'incantesimo (slot "spellN", patto, oppure livello base). */
+function castLevel(activity, usageConfig) {
+  const slot = usageConfig?.spell?.slot ?? usageConfig?.slotLevel;
+  if (typeof slot === "string") {
+    const n = Number(slot.match(/\d+/)?.[0]);
+    if (n) return n;
+    if (slot === "pact") return Number(activity.actor?.system?.spells?.pact?.level) || 1;
+  }
+  if (Number.isFinite(Number(slot)) && Number(slot) > 0) return Number(slot);
+  return Number(activity.item?.system?.level) || 1;
+}
+
+/** Distanza in piedi (o nell'unità della scena) tra due token. */
+function tokenDistance(a, b) {
+  if (!a || !b) return null;
+  try {
+    return canvas.grid.measurePath([a.center, b.center]).distance;
+  } catch {
+    return null;
+  }
+}
+
+/** Finestra di scelta dei bersagli. Restituisce un array di token o null se annullata. */
+async function chooseBlessTargets(casterToken, maxTargets) {
+  const preselected = new Set(Array.from(game.user.targets).map(t => t.id));
+  const units = canvas.scene?.grid?.units || "ft";
+  const range = canvas.scene?.grid?.units === "m" ? 9 : BLESS_RANGE_FT;
+
+  let candidates = canvas.tokens.placeables
+    .filter(t => t.actor && t.visible)
+    .map(t => ({ token: t, distance: tokenDistance(casterToken, t) }));
+
+  // Solo i token in gittata, se riesco a misurare; quelli già targettati restano sempre in lista.
+  if (casterToken) {
+    candidates = candidates.filter(c => preselected.has(c.token.id) || c.distance === null || c.distance <= range);
+  }
+  candidates.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+
+  if (!candidates.length) {
+    ui.notifications.warn("Benedizione: nessun token in gittata.");
+    return null;
+  }
+
+  const rows = candidates.map(({ token, distance }) => {
+    const checked = preselected.has(token.id) ? "checked" : "";
+    const dist = distance === null ? "" : `<span style="opacity:.7">${Math.round(distance)} ${units}</span>`;
+    const img = token.document.texture?.src ?? token.actor.img;
+    return `<label style="display:flex;align-items:center;gap:8px;padding:2px 0;">
+      <input type="checkbox" name="target" value="${token.id}" ${checked}>
+      <img src="${img}" width="32" height="32" style="border:none;object-fit:contain;">
+      <span style="flex:1">${foundry.utils.escapeHTML?.(token.name) ?? token.name}</span>${dist}
+    </label>`;
+  }).join("");
+
+  const content = `<p>Scegli fino a <strong>${maxTargets}</strong> bersagli.</p>
+    <div class="jmc-bless-targets" style="max-height:340px;overflow-y:auto;">${rows}</div>`;
+
+  const ids = await foundry.applications.api.DialogV2.wait({
+    window: { title: "Benedizione: bersagli" },
+    content,
+    buttons: [{
+      action: "bless",
+      label: "Benedici",
+      icon: "fa-solid fa-hand-sparkles",
+      default: true,
+      callback: (event, button) => Array.from(
+        button.form.querySelectorAll('input[name="target"]:checked'), i => i.value
+      )
+    }, {
+      action: "cancel",
+      label: "Annulla",
+      icon: "fa-solid fa-xmark",
+      callback: () => null
+    }],
+    rejectClose: false,
+    render: (event, dialog) => {
+      const root = dialog.element ?? event?.target?.element;
+      const boxes = Array.from(root?.querySelectorAll('input[name="target"]') ?? []);
+      const enforce = () => {
+        const full = boxes.filter(b => b.checked).length >= maxTargets;
+        for (const b of boxes) b.disabled = full && !b.checked;
+      };
+      boxes.forEach(b => b.addEventListener("change", enforce));
+      enforce();
+    }
+  });
+
+  if (!Array.isArray(ids)) return null;
+  return ids.slice(0, maxTargets).map(id => canvas.tokens.get(id)).filter(Boolean);
+}
+
+async function handleBlessCast(activity, usageConfig, results) {
   const caster = activity.actor;
   const item = activity.item;
-  const targets = Array.from(game.user.targets).map(t => t.actor).filter(Boolean);
+  const casterToken = caster?.token?.object ?? caster?.getActiveTokens?.()[0] ?? null;
+  const maxTargets = 3 + Math.max(0, castLevel(activity, usageConfig) - 1);
 
-  if (!targets.length) {
-    ui.notifications.warn("Benedizione: seleziona i bersagli (T) prima di lanciare l'incantesimo per applicare lo status Blessed.");
-    return;
-  }
+  const chosen = await chooseBlessTargets(casterToken, maxTargets);
+  if (!chosen?.length) return;
+  const targets = chosen.map(t => t.actor).filter(Boolean);
 
   const concentration = findConcentration(caster, item, results);
   if (!concentration) {

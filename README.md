@@ -17,10 +17,11 @@ Il d4 compare direttamente nella formula del tiro.
 
 ### Legato alla concentrazione
 
-1. Seleziona i bersagli con `T`.
-2. Lancia **Benedizione** dalla scheda dell'incantatore (identifier `bless`, oppure nome "Bless" / "Benedizione").
-3. Il modulo applica lo status Blessed ai bersagli e lo lega alla concentrazione dell'incantatore.
-4. Quando la concentrazione termina (TS fallito, nuovo incantesimo a concentrazione, rimozione manuale) lo status sparisce da tutti i bersagli.
+1. Lancia **Benedizione** dalla scheda dell'incantatore (identifier `bless`, oppure nome "Bless" / "Benedizione").
+2. Si apre la finestra **Benedizione: bersagli** con i token visibili entro 30 ft (9 m), ordinati per distanza. I token già targettati con `T` sono preselezionati.
+3. Il massimo di bersagli segue lo slot usato: 3 al 1° livello, +1 per ogni livello superiore. Raggiunto il limite, le altre caselle si disattivano.
+4. Premi **Benedici**: lo status Blessed viene applicato ai bersagli e legato alla concentrazione dell'incantatore.
+5. Quando la concentrazione termina (TS fallito, nuovo incantesimo a concentrazione, rimozione manuale) lo status sparisce da tutti i bersagli.
 
 Note:
 - **Non** premere anche il pulsante "Applica effetto" della carta dell'incantesimo di dnd5e, altrimenti il bersaglio riceve il d4 due volte. In alternativa disattiva *Benedizione automatica* nelle impostazioni del modulo.
