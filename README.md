@@ -64,10 +64,13 @@ https://github.com/giancocietto/joels-marvelous-creations/releases/latest/downlo
 
 ## Pubblicare una nuova versione
 
+**Dal sito (senza terminale):** scheda **Actions** → *Release* → **Run workflow**, scrivi la versione (es. `0.2.0`) e conferma. L'Action crea il tag `v0.2.0`, aggiorna `module.json`, crea `module.zip` e pubblica la release.
+
+**Da terminale:**
+
 ```bash
-git commit -am "Descrizione modifiche"
 git tag v0.2.0
-git push && git push --tags
+git push origin v0.2.0
 ```
 
-La GitHub Action aggiorna `module.json` con la versione del tag, crea `module.zip` e pubblica la release. In Foundry basta premere *Controlla aggiornamenti*.
+In Foundry basta poi premere *Controlla aggiornamenti*.

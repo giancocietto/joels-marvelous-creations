@@ -3,6 +3,11 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versione da pubblicare (es. 0.1.0, senza la v)"
+        required: true
 
 permissions:
   contents: write
@@ -13,14 +18,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Determina versione e tag
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+            VERSION="${VERSION#v}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "TAG=v$VERSION" >> "$GITHUB_ENV"
+
       - name: Aggiorna versione e URL in module.json
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
           BASE="https://github.com/${GITHUB_REPOSITORY}"
           jq --arg v "$VERSION" \
              --arg url "$BASE" \
              --arg manifest "$BASE/releases/latest/download/module.json" \
-             --arg download "$BASE/releases/download/${GITHUB_REF_NAME}/module.zip" \
+             --arg download "$BASE/releases/download/${TAG}/module.zip" \
              '.version = $v | .url = $url | .manifest = $manifest | .download = $download' \
              module.json > module.tmp && mv module.tmp module.json
           cat module.json
@@ -31,6 +46,8 @@ jobs:
       - name: Pubblica la release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
           files: |
             module.json
             module.zip
