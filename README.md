@@ -1,14 +1,14 @@
 # Joel's Marvelous Creations
 
-Modulo per Foundry VTT v14 con sistema dnd5e 5.3+ (regole 2024).
+Modulo per Foundry VTT v14 con sistema dnd5e 5.3 / 6.x (regole 2024).
 
 ## Installazione
 
 In Foundry: **Moduli aggiuntivi → Installa modulo**, incolla il Manifest URL (vedi sotto) e attiva il modulo nel mondo (*Gestisci moduli*).
 
-## Benedetto (Bless)
+## Blessed (Bless)
 
-Status **Benedetto (Bless)** nell'HUD del token. Quando è attivo aggiunge `1d4` a:
+Status **Blessed** nell'HUD del token. Quando è attivo aggiunge `1d4` a:
 
 - tutti i tiri salvezza;
 - tutti i tiri per colpire (mischia e distanza, armi e incantesimi).
@@ -19,7 +19,7 @@ Il d4 compare direttamente nella formula del tiro.
 
 1. Seleziona i bersagli con `T`.
 2. Lancia **Benedizione** dalla scheda dell'incantatore (identifier `bless`, oppure nome "Bless" / "Benedizione").
-3. Il modulo applica lo status Benedetto ai bersagli e lo lega alla concentrazione dell'incantatore.
+3. Il modulo applica lo status Blessed ai bersagli e lo lega alla concentrazione dell'incantatore.
 4. Quando la concentrazione termina (TS fallito, nuovo incantesimo a concentrazione, rimozione manuale) lo status sparisce da tutti i bersagli.
 
 Note:
@@ -49,7 +49,7 @@ Note:
 game.modules.get("joels-marvelous-creations").api.mirrorImageDialog();
 ```
 
-**Benedetto on/off** sui token selezionati (senza legame alla concentrazione):
+**Blessed on/off** sui token selezionati (senza legame alla concentrazione):
 
 ```js
 for (const t of canvas.tokens.controlled) {

@@ -1,8 +1,8 @@
 /**
  * Joel's Marvelous Creations
- * Foundry VTT v14 + dnd5e 5.3+ (regole 2024)
+ * Foundry VTT v14 + dnd5e 5.3 / 6.x (regole 2024)
  *
- *  - Benedetto (Bless): +1d4 automatico a tiri per colpire e tiri salvezza,
+ *  - Blessed (Bless): +1d4 automatico a tiri per colpire e tiri salvezza,
  *    legato alla concentrazione di chi lancia l'incantesimo.
  *  - Immagine Speculare: da 0 a 3 duplicati; quando un attacco colpisce si tira
  *    1d6 per duplicato rimasto, con un 3+ il colpo va a un duplicato che svanisce.
@@ -41,7 +41,7 @@ Hooks.once("init", () => {
 
   game.settings.register(MODULE_ID, "autoBless", {
     name: "Benedizione automatica",
-    hint: "Quando un incantatore lancia Benedizione dalla scheda, applica lo status Benedetto ai bersagli selezionati (T) e lo lega alla sua concentrazione.",
+    hint: "Quando un incantatore lancia Benedizione dalla scheda, applica lo status Blessed ai bersagli selezionati (T) e lo lega alla sua concentrazione.",
     scope: "world",
     config: true,
     type: Boolean,
@@ -64,7 +64,7 @@ Hooks.once("init", () => {
 Hooks.once("setup", () => {
   addStatusEffect({
     id: BLESSED_ID,
-    name: "Benedetto (Bless)",
+    name: "Blessed",
     img: `modules/${MODULE_ID}/icons/blessed.svg`,
     description: "Aggiunge 1d4 ai tiri per colpire e ai tiri salvezza.",
     system: { changes: buildBlessChanges() }
@@ -346,10 +346,23 @@ function findConcentration(caster, item, results) {
   const created = Array.isArray(results?.effects) ? results.effects.find(isConc) : null;
   if (created) return created;
 
+  // dnd5e 6 ha spostato l'origine degli effetti nei dati di sistema: cerco
+  // il riferimento all'incantesimo ovunque (origin, system, flag dnd5e).
+  const mentionsItem = e => {
+    try {
+      const blob = JSON.stringify({
+        origin: e.origin,
+        system: e.system?.toObject?.() ?? e.system,
+        flags: e.flags?.dnd5e
+      });
+      return blob.includes(item.uuid) || blob.includes(item.id);
+    } catch {
+      return false;
+    }
+  };
+
   const list = caster?.effects?.filter(isConc) ?? [];
-  return list.find(e => e.getFlag("dnd5e", "item")?.id === item.id || e.origin === item.uuid)
-    ?? list.at(-1)
-    ?? null;
+  return list.find(mentionsItem) ?? list.at(-1) ?? null;
 }
 
 async function handleBlessCast(activity, results) {
@@ -358,7 +371,7 @@ async function handleBlessCast(activity, results) {
   const targets = Array.from(game.user.targets).map(t => t.actor).filter(Boolean);
 
   if (!targets.length) {
-    ui.notifications.warn("Benedizione: seleziona i bersagli (T) prima di lanciare l'incantesimo per applicare lo status Benedetto.");
+    ui.notifications.warn("Benedizione: seleziona i bersagli (T) prima di lanciare l'incantesimo per applicare lo status Blessed.");
     return;
   }
 
@@ -379,7 +392,7 @@ async function handleBlessCast(activity, results) {
 function blessedEffectData({ concentration, origin }) {
   const status = CONFIG.statusEffects.find(s => s.id === BLESSED_ID);
   const data = {
-    name: status?.name ?? "Benedetto (Bless)",
+    name: status?.name ?? "Blessed",
     img: status?.img,
     description: status?.description ?? "",
     statuses: [BLESSED_ID],
