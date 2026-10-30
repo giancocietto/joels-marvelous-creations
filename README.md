@@ -4,17 +4,28 @@ Modulo per Foundry VTT v14 con sistema dnd5e 5.3+ (regole 2024).
 
 ## Installazione
 
-1. Copia la cartella `joels-marvelous-creations` in `Data/modules/`.
-2. Riavvia Foundry e attiva il modulo nel mondo (*Gestisci moduli*).
+In Foundry: **Moduli aggiuntivi → Installa modulo**, incolla il Manifest URL (vedi sotto) e attiva il modulo nel mondo (*Gestisci moduli*).
 
 ## Benedetto (Bless)
 
-Nell'HUD del token trovi un nuovo status, **Benedetto (Bless)**. Quando è attivo aggiunge `1d4` a:
+Status **Benedetto (Bless)** nell'HUD del token. Quando è attivo aggiunge `1d4` a:
 
 - tutti i tiri salvezza;
 - tutti i tiri per colpire (mischia e distanza, armi e incantesimi).
 
-Il d4 compare direttamente nella formula del tiro. Lo status non ha durata: va rimosso a mano oppure quando cade la concentrazione.
+Il d4 compare direttamente nella formula del tiro.
+
+### Legato alla concentrazione
+
+1. Seleziona i bersagli con `T`.
+2. Lancia **Benedizione** dalla scheda dell'incantatore (identifier `bless`, oppure nome "Bless" / "Benedizione").
+3. Il modulo applica lo status Benedetto ai bersagli e lo lega alla concentrazione dell'incantatore.
+4. Quando la concentrazione termina (TS fallito, nuovo incantesimo a concentrazione, rimozione manuale) lo status sparisce da tutti i bersagli.
+
+Note:
+- **Non** premere anche il pulsante "Applica effetto" della carta dell'incantesimo di dnd5e, altrimenti il bersaglio riceve il d4 due volte. In alternativa disattiva *Benedizione automatica* nelle impostazioni del modulo.
+- Se i bersagli non sono di proprietà di chi lancia (es. un giocatore che benedice gli altri PG), l'applicazione e la rimozione passano dal GM: serve un GM connesso.
+- Lo status messo a mano dall'HUD **non** è legato a nessuna concentrazione.
 
 > All'avvio, nella console (F12), compare la riga `joels-marvelous-creations | Bless keys:` con le chiavi usate. Il modulo sceglie da solo tra `system.rolls.*` e `system.bonuses.*` in base alla versione di dnd5e.
 
@@ -25,13 +36,20 @@ Il d4 compare direttamente nella formula del tiro. Lo status non ha durata: va r
   - se il tiro manca la CA non succede nulla;
   - se colpisce, il modulo tira 1d6 per ogni duplicato rimasto. Con almeno un 3+ un duplicato viene colpito e svanisce (il contatore scende), altrimenti il colpo va sul bersaglio vero;
   - un attaccante Accecato, oppure con Vista Cieca o Visione del Vero entro gittata, non viene ingannato.
-- A 0 duplicati lo status si rimuove da solo.
+- **Pulsanti in chat**: ogni messaggio di Immagine Speculare ha i pulsanti *Rimuovi duplicato* / *Aggiungi duplicato*, visibili solo al GM e al proprietario del personaggio.
+- Il numero di duplicati resta sempre tra 0 e 3. A 0 l'effetto si rimuove.
 - **Visivo**: attorno al token compaiono copie traslucide, una per duplicato. Si possono disattivare nelle impostazioni del modulo (impostazione per client).
 - Se un giocatore attacca un PNG con Immagine Speculare, l'aggiornamento passa dal GM: serve un GM connesso.
 
-## Macro utili
+## Macro
 
-Attivare o disattivare Benedetto sui token selezionati:
+**Immagine Speculare: aggiungi / rimuovi duplicato** sui token selezionati (apre una finestra con il conteggio attuale e i due pulsanti):
+
+```js
+game.modules.get("joels-marvelous-creations").api.mirrorImageDialog();
+```
+
+**Benedetto on/off** sui token selezionati (senza legame alla concentrazione):
 
 ```js
 for (const t of canvas.tokens.controlled) {
@@ -39,19 +57,11 @@ for (const t of canvas.tokens.controlled) {
 }
 ```
 
-Impostare a mano il numero di duplicati sul token selezionato:
-
-```js
-const api = game.modules.get("joels-marvelous-creations").api;
-const actor = canvas.tokens.controlled[0]?.actor;
-const n = Number(prompt("Duplicati (0-3)?", api.getDuplicates(actor)));
-await api.setDuplicates(actor, n);
-```
+Per creare una macro: clic su uno slot vuoto della hotbar → tipo **Script** → incolla → salva.
 
 ## Limiti noti
 
 - Quando un duplicato assorbe il colpo, il danno **non** viene bloccato in automatico: il messaggio in chat lo segnala e basta non applicarlo.
-- Lo status Benedetto non ha durata e non è legato alla concentrazione.
 - Per gli attacchi conta il target dell'utente che tira (`T` sul token).
 
 ## Installazione da Manifest URL
